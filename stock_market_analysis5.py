@@ -33,7 +33,7 @@ def fetch_ticker_from_db(company_name):
     conn = psycopg2.connect(**DB_CONFIG)
     cursor = conn.cursor()
     cursor.execute("""
-        SELECT symbol, exchange FROM stock_symbols
+        SELECT symbol, exchange FROM company_tickers
         WHERE LOWER(company_name) = %s
         LIMIT 1
     """, (company_name.lower(),))
@@ -46,7 +46,7 @@ def fetch_ticker_from_db(company_name):
 def match_company_in_db(user_query):
     conn = psycopg2.connect(**DB_CONFIG)
     cursor = conn.cursor()
-    cursor.execute("SELECT company_name FROM stock_symbols")
+    cursor.execute("SELECT company_name FROM company_tickers")
     all_companies = [row[0] for row in cursor.fetchall()]
     cursor.close()
     conn.close()
