@@ -13,7 +13,7 @@ def create_table():
     conn = psycopg2.connect(**DB_CONFIG)
     cur = conn.cursor()
     cur.execute("""
-        CREATE TABLE IF NOT EXISTS company_tickers (
+        CREATE TABLE IF NOT EXISTS stock_symbols (
             id SERIAL PRIMARY KEY,
             company_name TEXT NOT NULL,
             symbol TEXT NOT NULL,
@@ -24,7 +24,7 @@ def create_table():
     conn.commit()
     cur.close()
     conn.close()
-    print("✅ Table 'company_tickers' created or already exists.")
+    print("✅ Table 'stock_symbols' created or already exists.")
 
 def insert_data_from_csv():
     conn = psycopg2.connect(**DB_CONFIG)
@@ -33,7 +33,7 @@ def insert_data_from_csv():
         reader = csv.DictReader(file)
         for row in reader:
             cur.execute("""
-                INSERT INTO company_tickers (company_name, symbol, exchange, country)
+                INSERT INTO stock_symbols (company_name, symbol, exchange, country)
                 VALUES (%s, %s, %s, %s)
             """, (row['company_name'], row['symbol'], row['exchange'], row['country']))
     conn.commit()
