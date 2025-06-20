@@ -7,3 +7,5 @@ scikit-learn
 faiss-cpu
 streamlit
 psycopg2-binary
+plotly
+python-dotenv
