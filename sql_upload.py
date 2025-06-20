@@ -29,7 +29,7 @@ def create_table():
 def insert_data_from_csv():
     conn = psycopg2.connect(**DB_CONFIG)
     cur = conn.cursor()
-    with open("company_tickers.csv", "r", encoding="utf-8") as file:
+    with open("stock_symbols.csv", "r", encoding="utf-8") as file:
         reader = csv.DictReader(file)
         for row in reader:
             cur.execute("""
