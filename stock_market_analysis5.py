@@ -72,6 +72,8 @@ def build_faiss_index(corpus):
     return index, corpus
 
 # --- Fetch Historical Data from Alpha Vantage for Indian Companies ---
+from datetime import datetime, timedelta
+
 def get_alpha_vantage_data(symbol):
     url = "https://www.alphavantage.co/query"
     params = {
@@ -93,7 +95,13 @@ def get_alpha_vantage_data(symbol):
     })
     df.index = pd.to_datetime(df.index)
     df = df.sort_index()
-    return df.last("6M")[['close']].astype(float)
+
+    # Get last 6 months based on today's date
+    six_months_ago = datetime.now() - timedelta(days=180)
+    df_filtered = df.loc[df.index >= six_months_ago]
+
+    return df_filtered[['close']].astype(float)
+
 
 # --- Fetch Historical Data from Twelve Data for US Companies ---
 def get_twelve_data(symbol, exchange):
