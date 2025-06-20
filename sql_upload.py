@@ -1,14 +1,16 @@
 import psycopg2
 import csv
 
+# PostgreSQL connection configuration
 DB_CONFIG = {
     "dbname": "postgres",
     "user": "postgres",
-    "password": "123456",
+    "password": "123456",  # Change this if your password differs
     "host": "localhost",
     "port": "5432"
 }
 
+# Create table 'stock_symbols'
 def create_table():
     conn = psycopg2.connect(**DB_CONFIG)
     cur = conn.cursor()
@@ -26,6 +28,7 @@ def create_table():
     conn.close()
     print("✅ Table 'stock_symbols' created or already exists.")
 
+# Insert CSV data into 'stock_symbols'
 def insert_data_from_csv():
     conn = psycopg2.connect(**DB_CONFIG)
     cur = conn.cursor()
@@ -39,8 +42,9 @@ def insert_data_from_csv():
     conn.commit()
     cur.close()
     conn.close()
-    print("✅ Data loaded into 'stock_symbols' table.")  # fixed message
+    print("✅ Data loaded into 'stock_symbols' table.")
 
+# Main execution
 if __name__ == "__main__":
     create_table()
     insert_data_from_csv()
