@@ -39,7 +39,7 @@ def insert_data_from_csv():
     conn.commit()
     cur.close()
     conn.close()
-    print("✅ Data loaded into 'stock_symbols' table.") 
+    print("✅ Data loaded into 'stock_symbols' table.")  # fixed message
 
 if __name__ == "__main__":
     create_table()
