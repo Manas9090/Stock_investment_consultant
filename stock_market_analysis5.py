@@ -71,7 +71,7 @@ def build_faiss_index(corpus):
     index.add(embeddings)
     return index, corpus
 
-# --- Fetch Historical Data from Alpha Vantage for Indian Companies ---
+# --- Fetch Historical Data from Alpha Vantage ---
 def get_alpha_vantage_data(symbol):
     url = "https://www.alphavantage.co/query"
     params = {
@@ -98,40 +98,12 @@ def get_alpha_vantage_data(symbol):
     df_filtered = df.loc[df.index >= six_months_ago]
     return df_filtered[['close']].astype(float)
 
-# --- Fetch Historical Data from Twelve Data for US Companies ---
-def get_twelve_data(symbol, exchange):
-    end_date = datetime.now()
-    start_date = end_date - timedelta(days=180)
-    url = "https://api.twelvedata.com/time_series"
-    params = {
-        "symbol": symbol,
-        "interval": "1day",
-        "start_date": start_date.date(),
-        "end_date": end_date.date(),
-        "outputsize": 500,
-        "apikey": twelvedata_api_key
-    }
-    if exchange:
-        params["exchange"] = exchange
-
-    response = requests.get(url, params=params)
-    data = response.json()
-
-    if "values" not in data:
-        raise ValueError(f"Twelve Data error: {data}")
-
-    df = pd.DataFrame(data["values"])
-    df["datetime"] = pd.to_datetime(df["datetime"])
-    df.set_index("datetime", inplace=True)
-    df = df.sort_index()
-    return df[["close"]].astype(float)
-
 # --- Generate Insight ---
 def get_stock_insight(query, corpus, index, symbol, hist_df):
     query_embedding = embedding_model.encode([query])
     query_embedding = normalize(query_embedding)
     D, I = index.search(query_embedding, k=3)
-    context = "\n".join([corpus[i] for i in I[0]])
+    context = "\n".join([corpus[i] for i in I[0])
 
     latest_price = hist_df["close"].iloc[-1]
     past_price = hist_df["close"].iloc[0]
@@ -183,11 +155,7 @@ if query:
                 if news:
                     index, corpus = build_faiss_index(news)
                     try:
-                        if exchange in ["NSE", "BSE"]:
-                            hist_df = get_alpha_vantage_data(symbol)
-                        else:
-                            hist_df = get_twelve_data(symbol, exchange)
-
+                        hist_df = get_alpha_vantage_data(symbol)
                         st.line_chart(hist_df, use_container_width=True)
                         insight = get_stock_insight(query, corpus, index, symbol, hist_df)
                         st.success("\U0001F4A1 Investment Insight:")
