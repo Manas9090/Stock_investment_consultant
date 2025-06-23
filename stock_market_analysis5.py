@@ -6,7 +6,6 @@ from sentence_transformers import SentenceTransformer
 from sklearn.preprocessing import normalize 
 import faiss
 import streamlit as st 
-import datetime
 from datetime import datetime, timedelta
 import psycopg2
 
@@ -14,8 +13,7 @@ import psycopg2
 openai.api_key = "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"
 twelvedata_api_key = "8b12c89c35be4fd0b13bcacbfba4700a" 
 news_api_key = "0d1e0cc62cad47b4aa7623adfb2d4684" 
-#alpha_vantage_api_key = "KXOVYT1RRA7HT88W" 
-alpha_vantage_api_key="UTRNX3Y6VG4ZXL24"
+alpha_vantage_api_key = "UTRNX3Y6VG4ZXL24"
 
 # --- Load Embedding Model ---
 embedding_model = SentenceTransformer("all-MiniLM-L6-v2") 
@@ -28,7 +26,6 @@ DB_CONFIG = {
     "host": "localhost",
     "port": "5432"
 }
-
 
 # --- Fetch Company Symbol & Exchange from PostgreSQL ---
 def fetch_ticker_from_db(company_name):
@@ -74,8 +71,6 @@ def build_faiss_index(corpus):
     return index, corpus
 
 # --- Fetch Historical Data from Alpha Vantage for Indian Companies ---
-from datetime import datetime, timedelta
-
 def get_alpha_vantage_data(symbol):
     url = "https://www.alphavantage.co/query"
     params = {
@@ -98,17 +93,15 @@ def get_alpha_vantage_data(symbol):
     df.index = pd.to_datetime(df.index)
     df = df.sort_index()
 
-    # Get last 6 months based on today's date
     six_months_ago = datetime.now() - timedelta(days=180)
     df_filtered = df.loc[df.index >= six_months_ago]
 
     return df_filtered[['close']].astype(float)
 
-
 # --- Fetch Historical Data from Twelve Data for US Companies ---
 def get_twelve_data(symbol, exchange):
-    end_date = datetime.datetime.now()
-    start_date = end_date - datetime.timedelta(days=180)
+    end_date = datetime.now()
+    start_date = end_date - timedelta(days=180)
     url = "https://api.twelvedata.com/time_series"
     params = {
         "symbol": symbol,
@@ -174,7 +167,6 @@ def get_stock_insight(query, corpus, index, symbol, hist_df):
 # --- Streamlit UI ---
 st.set_page_config(page_title="Stock Market Consultant", layout="centered") 
 st.title("📈 STAT-TECH-AI-Powered Stock Market Consultant") 
-
 
 query = st.text_input("🔍 Ask a question about a company (e.g., Infosys 6-month trend)")
 
