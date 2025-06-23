@@ -2,8 +2,8 @@ import psycopg2
 import csv
 
 DB_CONFIG = {
-    "dbname": "stock_db",
-    "user": "stockuser",
+    "dbname": "stockdb",          # Fixed DB name
+    "user": "stockuser",          # Username as per your PostgreSQL setup
     "password": "123456",
     "host": "localhost",
     "port": "5432"
