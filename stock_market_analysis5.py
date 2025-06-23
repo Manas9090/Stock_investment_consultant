@@ -21,12 +21,13 @@ embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 
 # --- PostgreSQL Config ---
 DB_CONFIG = {
-    "dbname": "postgres",
-    "user": "postgres",
+    "dbname": "stockdb",
+    "user": "stockuser",
     "password": "123456",
     "host": "localhost",
     "port": "5432"
 }
+
 
 # --- Fetch Company Symbol & Exchange from PostgreSQL ---
 def fetch_ticker_from_db(company_name):
