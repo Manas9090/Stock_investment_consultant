@@ -8,10 +8,10 @@ import faiss
 import streamlit as st 
 from datetime import datetime, timedelta
 import psycopg2
-from openai import OpenAI
+import openai
 
 # --- API Keys from Environment ---
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+openai.api_key = os.getenv("OPENAI_API_KEY")
 twelvedata_api_key = os.getenv("TWELVE_DATA_API_KEY")
 news_api_key = os.getenv("NEWS_API_KEY")
 alpha_vantage_api_key = os.getenv("ALPHA_VANTAGE_API_KEY")
@@ -154,7 +154,7 @@ def get_stock_insight(query, corpus, index, symbol, hist_df):
     {query}
     """
 
-    response = client.chat.completions.create(
+    response = openai.ChatCompletion.create(
         model="gpt-4",
         messages=[
             {"role": "system", "content": "You are a helpful financial advisor."},
@@ -162,7 +162,7 @@ def get_stock_insight(query, corpus, index, symbol, hist_df):
         ],
         temperature=0.4
     )
-    return response.choices[0].message.content
+    return response['choices'][0]['message']['content']
 
 # --- Streamlit UI ---
 st.set_page_config(page_title="Stock Market Consultant", layout="centered") 
