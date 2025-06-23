@@ -1,0 +1,78 @@
+company_name,symbol,exchange,country
+apple,AAPL,NASDAQ,United States
+microsoft,MSFT,NASDAQ,United States
+google,GOOGL,NASDAQ,United States
+amazon,AMZN,NASDAQ,United States
+meta,META,NASDAQ,United States
+nvidia,NVDA,NASDAQ,United States
+tesla,TSLA,NASDAQ,United States
+intel,INTC,NASDAQ,United States
+netflix,NFLX,NASDAQ,United States
+adobe,ADBE,NASDAQ,United States
+Cisco Systems, CSCO, NASDAQ, United States
+Comcast, CMCSA, NASDAQ, United States
+PepsiCo, PEP, NASDAQ, United States
+PayPal, PYPL, NASDAQ, United States
+Qualcomm, QCOM, NASDAQ, United States
+Starbucks, SBUX, NASDAQ, United States
+eBay, EBAY, NASDAQ, United States
+Amgen, AMGN, NASDAQ, United States
+Booking Holdings, BKNG, NASDAQ, United States
+Costco, COST, NASDAQ, United States
+Intuit, INTU, NASDAQ, United States
+Lam Research, LRCX, NASDAQ, United States
+Micron Technology, MU, NASDAQ, United States
+Zoom Video, ZM, NASDAQ, United States
+T-Mobile, TMUS, NASDAQ, United States
+Reliance Industries,RELIANCE.BSE, BSE, India
+Tata Consultancy Services,TCS.BSE, BSE, India
+HDFC Bank,HDFCBANK.BO, BSE, India
+ICICI Bank,ICICIBANK.BO, BSE, India
+State Bank of India,SBIN.BO, BSE, India
+Larsen & Toubro,AXISBANK.BO, BSE, India
+NTPC, NTPC.BSE, BSE, India
+Bajaj Auto, BAJAJ-AUTO.BO, BSE, India
+Axis Bank, AXISBANK.BO, BSE, India
+Kotak Mahindra Bank, KOTAKBANK.BO, BSE, India
+Wipro, WIPRO.BSE, BSE, India
+HCL Technologies, HCLTECH.BSE, BSE, India
+UltraTech Cement, ULTRACEMCO.BSE, BSE, India
+Maruti Suzuki, MARUTI.BSE, BSE, India
+Sun Pharma, SUNPHARMA.BO, BSE, India
+Tech Mahindra, TECHM.BSE, BSE, India
+NTPC, NTPC.BO, BSE, India
+Adani Ports & SEZ,ADANIPORTS.BO,BSE,India
+Asian Paints,ASIANPAINT.BO,BSE,India
+Axis Bank,AXISBANK.BO,BSE,India
+Bajaj Finance,BAJFINANCE.BO,BSE,India
+Bajaj Finserv,BAJAJFINSV.BO,BSE,India
+Bharti Airtel,BHARTIARTL.BO,BSE,India
+Eternal,ETERNAL.BO,BSE,India
+HCLTech,HCLTECH.BO,BSE,India
+HDFC Bank,HDFCBANK.BO,BSE,India
+Hindustan Unilever,HINDUNILVR.BO,BSE,India
+ICICI Bank,ICICIBANK.BO,BSE,India
+IndusInd Bank,INDUSINDBK.BO,BSE,India
+Infosys,INFY.BO,BSE,India
+ITC,ITC.BO,BSE,India
+Kotak Mahindra Bank,KOTAKBANK.BO,BSE,India
+Larsen & Toubro,LT.BO,BSE,India
+Mahindra & Mahindra,M&M.BO,BSE,India
+Maruti Suzuki,MARUTI.BO,BSE,India
+Nestlé India,NESTLEIND.BO,BSE,India
+NTPC,NTPC.BO,BSE,India
+Power Grid,POWERGRID.BO,BSE,India
+Reliance Industries,RELIANCE.BO,BSE,India
+State Bank of India,SBIN.BO,BSE,India
+Sun Pharma,SUNPHARMA.BO,BSE,India
+Tata Consultancy Services,TCS.BO,BSE,India
+Tata Motors,TATAMOTORS.BO,BSE,India
+Tata Steel,TATASTEEL.BO,BSE,India
+Titan Company,TITAN.BO,BSE,India
+UltraTech Cement,ULTRACEMCO.BO,BSE,India
+TATA CHEMICALS, TATACHEM.BSE,BSE,India
+TATA COMMUNICATIONS, TATACOMM.BSE,BSE,India
+Tata Elxsi , TATAELXSI.BSE,BSE,India
+TATA POWER , TATAPOWER.BSE,BSE,India
+Tata Consumer Products, TATACONSUM.BSE,BSE,India
+TATA INVESTMENT CORPORATION , TATAINVEST.BSE,BSE,India
