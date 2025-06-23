@@ -3,7 +3,7 @@ import csv
 
 DB_CONFIG = {
     "dbname": "stock_db",
-    "user": "stock_user",
+    "user": "stockuser",
     "password": "123456",
     "host": "localhost",
     "port": "5432"
