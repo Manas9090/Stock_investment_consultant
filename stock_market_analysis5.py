@@ -7,6 +7,7 @@ from sklearn.preprocessing import normalize
 import faiss
 import streamlit as st 
 import datetime
+from datetime import datetime, timedelta
 import psycopg2
 
 # --- API Keys ---
@@ -37,7 +38,7 @@ def fetch_ticker_from_db(company_name):
         SELECT symbol, exchange FROM stock_symbols
         WHERE LOWER(company_name) = %s
         LIMIT 1
-    """, (company_name.lower(),))
+    """, (company_name.lower(),)) 
     result = cursor.fetchone()
     cursor.close()
     conn.close()
