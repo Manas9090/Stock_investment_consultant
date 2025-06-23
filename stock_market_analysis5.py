@@ -1,4 +1,4 @@
-import openai
+import os
 import requests
 import pandas as pd
 import numpy as np
@@ -8,12 +8,13 @@ import faiss
 import streamlit as st 
 from datetime import datetime, timedelta
 import psycopg2
+from openai import OpenAI
 
-# --- API Keys ---
-openai.api_key = "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"
-twelvedata_api_key = "8b12c89c35be4fd0b13bcacbfba4700a" 
-news_api_key = "0d1e0cc62cad47b4aa7623adfb2d4684" 
-alpha_vantage_api_key = "UTRNX3Y6VG4ZXL24"
+# --- API Keys from Environment ---
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+twelvedata_api_key = os.getenv("TWELVE_DATA_API_KEY")
+news_api_key = os.getenv("NEWS_API_KEY")
+alpha_vantage_api_key = os.getenv("ALPHA_VANTAGE_API_KEY")
 
 # --- Load Embedding Model ---
 embedding_model = SentenceTransformer("all-MiniLM-L6-v2") 
@@ -95,7 +96,6 @@ def get_alpha_vantage_data(symbol):
 
     six_months_ago = datetime.now() - timedelta(days=180)
     df_filtered = df.loc[df.index >= six_months_ago]
-
     return df_filtered[['close']].astype(float)
 
 # --- Fetch Historical Data from Twelve Data for US Companies ---
@@ -154,7 +154,7 @@ def get_stock_insight(query, corpus, index, symbol, hist_df):
     {query}
     """
 
-    response = openai.ChatCompletion.create(
+    response = client.chat.completions.create(
         model="gpt-4",
         messages=[
             {"role": "system", "content": "You are a helpful financial advisor."},
@@ -162,13 +162,13 @@ def get_stock_insight(query, corpus, index, symbol, hist_df):
         ],
         temperature=0.4
     )
-    return response['choices'][0]['message']['content'] 
+    return response.choices[0].message.content
 
 # --- Streamlit UI ---
 st.set_page_config(page_title="Stock Market Consultant", layout="centered") 
-st.title("📈 STAT-TECH-AI-Powered Stock Market Consultant") 
+st.title("\U0001F4C8 STAT-TECH-AI-Powered Stock Market Consultant") 
 
-query = st.text_input("🔍 Ask a question about a company (e.g., Infosys 6-month trend)")
+query = st.text_input("\U0001F50D Ask a question about a company (e.g., Infosys 6-month trend)")
 
 if query:
     with st.spinner("Fetching insights..."):
@@ -177,7 +177,7 @@ if query:
             result = fetch_ticker_from_db(company_name)
             if result:
                 symbol, exchange = result
-                st.write(f"📌 Company: **{company_name.title()}**, Symbol: **{symbol}**, Exchange: **{exchange}**")
+                st.write(f"\U0001F4CC Company: **{company_name.title()}**, Symbol: **{symbol}**, Exchange: **{exchange}**")
 
                 news = fetch_live_news(company_name)
                 if news:
@@ -190,13 +190,13 @@ if query:
 
                         st.line_chart(hist_df, use_container_width=True)
                         insight = get_stock_insight(query, corpus, index, symbol, hist_df)
-                        st.success("💡 Investment Insight:")
+                        st.success("\U0001F4A1 Investment Insight:")
                         st.write(insight)
                     except Exception as e:
-                        st.error(f"❌ Historical data error: {e}")
+                        st.error(f"\u274C Historical data error: {e}")
                 else:
-                    st.warning("⚠️ No recent news found for this company.")
+                    st.warning("\u26A0\ufe0f No recent news found for this company.")
             else:
-                st.error("❌ Company not found in database. Please check the name or add it to your PostgreSQL table.")
+                st.error("\u274C Company not found in database. Please check the name or add it to your PostgreSQL table.")
         else:
-            st.error("❌ Company not found in database. Please check the name or add it to your PostgreSQL table.")
+            st.error("\u274C Company not found in database. Please check the name or add it to your PostgreSQL table.")
