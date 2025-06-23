@@ -12,7 +12,6 @@ import openai
 
 # --- API Keys from Environment ---
 openai.api_key = os.getenv("OPENAI_API_KEY")
-twelvedata_api_key = os.getenv("TWELVE_DATA_API_KEY")
 news_api_key = os.getenv("NEWS_API_KEY")
 alpha_vantage_api_key = os.getenv("ALPHA_VANTAGE_API_KEY")
 
@@ -103,7 +102,7 @@ def get_stock_insight(query, corpus, index, symbol, hist_df):
     query_embedding = embedding_model.encode([query])
     query_embedding = normalize(query_embedding)
     D, I = index.search(query_embedding, k=3)
-    context = "\n".join([corpus[i] for i in I[0])
+    context = "\n".join([corpus[i] for i in I[0]])
 
     latest_price = hist_df["close"].iloc[-1]
     past_price = hist_df["close"].iloc[0]
