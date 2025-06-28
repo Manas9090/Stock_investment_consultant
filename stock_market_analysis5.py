@@ -9,11 +9,11 @@ import streamlit as st
 import datetime
 import psycopg2
 
+# --- API Keys ---
 openai.api_key = st.secrets["api_keys"]["openai"]
 twelvedata_api_key = st.secrets["api_keys"]["twelvedata"]
 news_api_key = st.secrets["api_keys"]["newsapi"]
 alpha_vantage_api_key = st.secrets["api_keys"]["alphavantage"]
-
 
 # --- Load Embedding Model ---
 embedding_model = SentenceTransformer("all-MiniLM-L6-v2") 
