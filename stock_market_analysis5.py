@@ -1,28 +1,28 @@
-import os
+import openai
 import requests
 import pandas as pd
 import numpy as np
-from sentence_transformers import SentenceTransformer
-from sklearn.preprocessing import normalize
+from sentence_transformers import SentenceTransformer 
+from sklearn.preprocessing import normalize 
 import faiss
-import streamlit as st
-from datetime import datetime, timedelta
+import streamlit as st 
+import datetime
 import psycopg2
-import openai
 
-# --- API Keys from Streamlit Secrets ---
-openai.api_key = st.secrets["OPENAI_API_KEY"]
-news_api_key = st.secrets["NEWS_API_KEY"]
-alpha_vantage_api_key = st.secrets["ALPHA_VANTAGE_API_KEY"]
+openai.api_key = st.secrets["api_keys"]["openai"]
+twelvedata_api_key = st.secrets["api_keys"]["twelvedata"]
+news_api_key = st.secrets["api_keys"]["newsapi"]
+alpha_vantage_api_key = st.secrets["api_keys"]["alphavantage"]
+
 
 # --- Load Embedding Model ---
-embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+embedding_model = SentenceTransformer("all-MiniLM-L6-v2") 
 
 # --- PostgreSQL Config ---
 DB_CONFIG = {
-    "dbname": "stockdb",
-    "user": "stockuser",
-    "password": "123456",
+    "dbname": "postgres",
+    "user": "postgres",
+    "password": "123456", 
     "host": "localhost",
     "port": "5432"
 }
@@ -51,7 +51,7 @@ def match_company_in_db(user_query):
     conn.close()
 
     for name in all_companies:
-        if name.lower() in user_query.lower():
+        if name.lower() in user_query.lower(): 
             return name
     return None
 
@@ -70,7 +70,7 @@ def build_faiss_index(corpus):
     index.add(embeddings)
     return index, corpus
 
-# --- Fetch Historical Data from Alpha Vantage ---
+# --- Fetch Historical Data from Alpha Vantage for Indian Companies ---
 def get_alpha_vantage_data(symbol):
     url = "https://www.alphavantage.co/query"
     params = {
@@ -92,10 +92,35 @@ def get_alpha_vantage_data(symbol):
     })
     df.index = pd.to_datetime(df.index)
     df = df.sort_index()
+    return df.last("6M")[['close']].astype(float)
 
-    six_months_ago = datetime.now() - timedelta(days=180)
-    df_filtered = df.loc[df.index >= six_months_ago]
-    return df_filtered[['close']].astype(float)
+# --- Fetch Historical Data from Twelve Data for US Companies ---
+def get_twelve_data(symbol, exchange):
+    end_date = datetime.datetime.now()
+    start_date = end_date - datetime.timedelta(days=180)
+    url = "https://api.twelvedata.com/time_series"
+    params = {
+        "symbol": symbol,
+        "interval": "1day",
+        "start_date": start_date.date(),
+        "end_date": end_date.date(),
+        "outputsize": 500,
+        "apikey": twelvedata_api_key
+    }
+    if exchange:
+        params["exchange"] = exchange
+
+    response = requests.get(url, params=params)
+    data = response.json()
+
+    if "values" not in data:
+        raise ValueError(f"Twelve Data error: {data}")
+
+    df = pd.DataFrame(data["values"])
+    df["datetime"] = pd.to_datetime(df["datetime"])
+    df.set_index("datetime", inplace=True)
+    df = df.sort_index()
+    return df[["close"]].astype(float)
 
 # --- Generate Insight ---
 def get_stock_insight(query, corpus, index, symbol, hist_df):
@@ -133,13 +158,14 @@ def get_stock_insight(query, corpus, index, symbol, hist_df):
         ],
         temperature=0.4
     )
-    return response['choices'][0]['message']['content']
+    return response['choices'][0]['message']['content'] 
 
 # --- Streamlit UI ---
-st.set_page_config(page_title="Stock Market Consultant", layout="centered")
-st.title("\U0001F4C8 STAT-TECH-AI-Powered Stock Market Consultant")
+st.set_page_config(page_title="Stock Market Consultant", layout="centered") 
+st.title("📈 STAT-TECH-AI-Powered Stock Market Consultant") 
 
-query = st.text_input("\U0001F50D Ask a question about a company (e.g., Infosys 6-month trend)")
+
+query = st.text_input("🔍 Ask a question about a company (e.g., Infosys 6-month trend)")
 
 if query:
     with st.spinner("Fetching insights..."):
@@ -148,16 +174,20 @@ if query:
             result = fetch_ticker_from_db(company_name)
             if result:
                 symbol, exchange = result
-                st.write(f"\U0001F4CC Company: **{company_name.title()}**, Symbol: **{symbol}**, Exchange: **{exchange}**")
+                st.write(f"📌 Company: **{company_name.title()}**, Symbol: **{symbol}**, Exchange: **{exchange}**")
 
                 news = fetch_live_news(company_name)
                 if news:
                     index, corpus = build_faiss_index(news)
                     try:
-                        hist_df = get_alpha_vantage_data(symbol)
+                        if exchange in ["NSE", "BSE"]:
+                            hist_df = get_alpha_vantage_data(symbol)
+                        else:
+                            hist_df = get_twelve_data(symbol, exchange)
+
                         st.line_chart(hist_df, use_container_width=True)
                         insight = get_stock_insight(query, corpus, index, symbol, hist_df)
-                        st.success("\U0001F4A1 Investment Insight:")
+                        st.success("💡 Investment Insight:")
                         st.write(insight)
                     except Exception as e:
                         st.error(f"❌ Historical data error: {e}")
