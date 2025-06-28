@@ -11,9 +11,9 @@ import psycopg2
 import openai
 
 # --- API Keys from Streamlit Secrets ---
-openai.api_key = st.secrets["OPENAI_API_KEY"]
-news_api_key = st.secrets["NEWS_API_KEY"]
-alpha_vantage_api_key = st.secrets["ALPHA_VANTAGE_API_KEY"]
+openai.api_key = st.secrets["api_keys"]["openai"]
+news_api_key = st.secrets["api_keys"]["news"]
+alpha_vantage_api_key = st.secrets["api_keys"]["alpha_vantage"]
 
 # --- Load Embedding Model ---
 embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
