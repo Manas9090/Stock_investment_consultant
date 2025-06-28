@@ -19,12 +19,19 @@ alpha_vantage_api_key = st.secrets["api_keys"]["alphavantage"]
 embedding_model = SentenceTransformer("all-MiniLM-L6-v2") 
 
 # --- PostgreSQL Config ---
+# DB_CONFIG = {
+#     "dbname": "postgres",
+#     "user": "postgres",
+#     "password": "123456", 
+#     "host": "localhost",
+#     "port": "5432"
+# }
 DB_CONFIG = {
-    "dbname": "postgres",
-    "user": "postgres",
-    "password": "123456", 
-    "host": "localhost",
-    "port": "5432"
+    "dbname": st.secrets["database"]["dbname"],
+    "user": st.secrets["database"]["user"],
+    "password": st.secrets["database"]["password"],
+    "host": st.secrets["database"]["host"],
+    "port": st.secrets["database"]["port"]
 }
 
 # --- Fetch Company Symbol & Exchange from PostgreSQL ---
