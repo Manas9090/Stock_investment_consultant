@@ -2,21 +2,21 @@ import os
 import requests
 import pandas as pd
 import numpy as np
-from sentence_transformers import SentenceTransformer 
-from sklearn.preprocessing import normalize 
+from sentence_transformers import SentenceTransformer
+from sklearn.preprocessing import normalize
 import faiss
-import streamlit as st 
+import streamlit as st
 from datetime import datetime, timedelta
 import psycopg2
 import openai
 
-# --- API Keys from Environment ---
-openai.api_key = os.getenv("OPENAI_API_KEY")
-news_api_key = os.getenv("NEWS_API_KEY")
-alpha_vantage_api_key = os.getenv("ALPHA_VANTAGE_API_KEY")
+# --- API Keys from Streamlit Secrets ---
+openai.api_key = st.secrets["OPENAI_API_KEY"]
+news_api_key = st.secrets["NEWS_API_KEY"]
+alpha_vantage_api_key = st.secrets["ALPHA_VANTAGE_API_KEY"]
 
 # --- Load Embedding Model ---
-embedding_model = SentenceTransformer("all-MiniLM-L6-v2") 
+embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 
 # --- PostgreSQL Config ---
 DB_CONFIG = {
@@ -35,7 +35,7 @@ def fetch_ticker_from_db(company_name):
         SELECT symbol, exchange FROM stock_symbols
         WHERE LOWER(company_name) = %s
         LIMIT 1
-    """, (company_name.lower(),)) 
+    """, (company_name.lower(),))
     result = cursor.fetchone()
     cursor.close()
     conn.close()
@@ -51,7 +51,7 @@ def match_company_in_db(user_query):
     conn.close()
 
     for name in all_companies:
-        if name.lower() in user_query.lower(): 
+        if name.lower() in user_query.lower():
             return name
     return None
 
@@ -136,8 +136,8 @@ def get_stock_insight(query, corpus, index, symbol, hist_df):
     return response['choices'][0]['message']['content']
 
 # --- Streamlit UI ---
-st.set_page_config(page_title="Stock Market Consultant", layout="centered") 
-st.title("\U0001F4C8 STAT-TECH-AI-Powered Stock Market Consultant") 
+st.set_page_config(page_title="Stock Market Consultant", layout="centered")
+st.title("\U0001F4C8 STAT-TECH-AI-Powered Stock Market Consultant")
 
 query = st.text_input("\U0001F50D Ask a question about a company (e.g., Infosys 6-month trend)")
 
@@ -160,10 +160,10 @@ if query:
                         st.success("\U0001F4A1 Investment Insight:")
                         st.write(insight)
                     except Exception as e:
-                        st.error(f"\u274C Historical data error: {e}")
+                        st.error(f"❌ Historical data error: {e}")
                 else:
-                    st.warning("\u26A0\ufe0f No recent news found for this company.")
+                    st.warning("⚠️ No recent news found for this company.")
             else:
-                st.error("\u274C Company not found in database. Please check the name or add it to your PostgreSQL table.")
+                st.error("❌ Company not found in database. Please check the name or add it to your PostgreSQL table.")
         else:
-            st.error("\u274C Company not found in database. Please check the name or add it to your PostgreSQL table.")
+            st.error("❌ Company not found in database. Please check the name or add it to your PostgreSQL table.")
