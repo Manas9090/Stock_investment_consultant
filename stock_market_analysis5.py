@@ -16,17 +16,14 @@ twelvedata_api_key = st.secrets["api_keys"]["twelvedata"]
 news_api_key = st.secrets["api_keys"]["newsapi"]
 alpha_vantage_api_key = st.secrets["api_keys"]["alphavantage"]
 
-# --- Load Embedding Model ---
-embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
-
 # --- AWS S3 Config ---
 AWS_ACCESS_KEY = st.secrets["aws"]["aws_access_key_id"]
 AWS_SECRET_KEY = st.secrets["aws"]["aws_secret_access_key"]
 AWS_REGION = st.secrets["aws"]["region_name"]
 BUCKET_NAME = st.secrets["aws"]["bucket_name"]
-SYMBOL_FILE_KEY = "stock_symbols2_clean.csv"
+SYMBOL_FILE_KEY = "stock_symbols2.csv"
 
-# Initialize S3 Client
+# --- S3 Load & Trim Symbols ---
 s3 = boto3.client(
     "s3",
     aws_access_key_id=AWS_ACCESS_KEY,
@@ -34,38 +31,33 @@ s3 = boto3.client(
     region_name=AWS_REGION
 )
 
-# Load Stock Symbols from S3
-@st.cache_data
-def load_symbols_from_s3():
-    response = s3.get_object(Bucket=BUCKET_NAME, Key=SYMBOL_FILE_KEY)
-    csv_data = response['Body'].read().decode('utf-8')
-    df = pd.read_csv(StringIO(csv_data))
-    return df
+response = s3.get_object(Bucket=BUCKET_NAME, Key=SYMBOL_FILE_KEY)
+csv_data = response['Body'].read().decode('utf-8')
+symbols_df = pd.read_csv(StringIO(csv_data))
+symbols_df = symbols_df.apply(lambda col: col.str.strip() if col.dtype == "object" else col)
 
-symbols_df = load_symbols_from_s3()
+# --- Embedding Model ---
+embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 
-# --- Fetch Company Symbol & Exchange from DataFrame ---
+# --- Helper Functions ---
 def fetch_ticker_from_df(company_name):
     match = symbols_df[symbols_df["company_name"].str.lower() == company_name.lower()]
     if not match.empty:
         return match.iloc[0]["symbol"], match.iloc[0]["exchange"]
     return None
 
-# --- Match Company in DataFrame ---
 def match_company_in_df(user_query):
     for name in symbols_df["company_name"]:
         if name.lower() in user_query.lower():
             return name
     return None
 
-# --- Fetch Live News ---
 def fetch_live_news(company):
     url = f"https://newsapi.org/v2/everything?q={company}&sortBy=publishedAt&language=en&apiKey={news_api_key}"
     response = requests.get(url)
     articles = response.json().get("articles", [])
     return [f"{a['title']}. {a.get('description', '')}" for a in articles if a.get('title')]
 
-# --- Build FAISS Index ---
 def build_faiss_index(corpus):
     embeddings = embedding_model.encode(corpus)
     embeddings = normalize(embeddings)
@@ -73,7 +65,6 @@ def build_faiss_index(corpus):
     index.add(embeddings)
     return index, corpus
 
-# --- Historical Data from Alpha Vantage ---
 def get_alpha_vantage_data(symbol):
     url = "https://www.alphavantage.co/query"
     params = {
@@ -95,7 +86,6 @@ def get_alpha_vantage_data(symbol):
     df.sort_index(inplace=True)
     return df.last("6M")[['close']].astype(float)
 
-# --- Historical Data from Twelve Data ---
 def get_twelve_data(symbol, exchange):
     end_date = datetime.datetime.now()
     start_date = end_date - datetime.timedelta(days=180)
@@ -108,6 +98,8 @@ def get_twelve_data(symbol, exchange):
         "outputsize": 500,
         "apikey": twelvedata_api_key
     }
+    if exchange:
+        params["exchange"] = exchange
     response = requests.get(url, params=params)
     data = response.json()
     if "values" not in data:
@@ -118,7 +110,6 @@ def get_twelve_data(symbol, exchange):
     df.sort_index(inplace=True)
     return df[["close"]].astype(float)
 
-# --- Generate Investment Insight ---
 def get_stock_insight(query, corpus, index, symbol, hist_df):
     query_embedding = embedding_model.encode([query])
     query_embedding = normalize(query_embedding)
@@ -134,22 +125,24 @@ def get_stock_insight(query, corpus, index, symbol, hist_df):
         f"It changed from {past_price:.2f} over the past 6 months, a {change_pct:.2f}% move."
     )
 
+    prompt = f"""
+    You are a financial advisor. Based on the stock trend and recent news, provide an investment insight:
+
+    Stock Trend:
+    {trend_context}
+
+    News:
+    {context}
+
+    Question:
+    {query}
+    """
+
     response = openai.ChatCompletion.create(
         model="gpt-4",
         messages=[
             {"role": "system", "content": "You are a helpful financial advisor."},
-            {"role": "user", "content": f"""
-            You are a financial advisor. Based on the stock trend and recent news, provide an investment insight:
-
-            Stock Trend:
-            {trend_context}
-
-            News:
-            {context}
-
-            Question:
-            {query}
-            """}
+            {"role": "user", "content": prompt}
         ]
     )
 
@@ -158,7 +151,7 @@ def get_stock_insight(query, corpus, index, symbol, hist_df):
 # --- Streamlit UI ---
 st.set_page_config(page_title="Stock Investment Consultant", layout="centered")
 
-st.title("\U0001F4C8 Stock Market Investment Consultant")
+st.title("📊 Stock Market Investment Consultant")
 st.write("Ask about a company's stock trend, news, and get AI-generated investment insights.")
 
 query = st.text_input("Enter your query (mention company name):")
@@ -183,11 +176,8 @@ if query:
                 st.info("No recent news found.")
 
             try:
-                use_alpha = exchange.upper() in ["BSE", "NSE"]
-
-                if use_alpha:
-                    alpha_symbol = symbol.split(".")[0] if "." in symbol else symbol
-                    hist_df = get_alpha_vantage_data(alpha_symbol)
+                if exchange and exchange.strip().upper() in ["BSE", "NSE"]:
+                    hist_df = get_alpha_vantage_data(symbol)
                 else:
                     hist_df = get_twelve_data(symbol, exchange)
 
@@ -196,7 +186,7 @@ if query:
                 faiss_index, corpus = build_faiss_index(news_list)
                 insight = get_stock_insight(query, corpus, faiss_index, symbol, hist_df)
 
-                st.subheader("\U0001F4A1 Investment Insight:")
+                st.subheader("💡 Investment Insight:")
                 st.write(insight)
 
             except Exception as e:
