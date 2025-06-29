@@ -158,3 +158,52 @@ def get_stock_insight(query, corpus, index, symbol, hist_df):
     )
 
     return response.choices[0].message.content.strip()
+
+# --- Streamlit UI ---
+st.set_page_config(page_title="Stock Investment Consultant", layout="centered")
+
+st.title("📊 Stock Market Investment Consultant")
+st.write("Ask about a company's stock trend, news, and get AI-generated investment insights.")
+
+query = st.text_input("Enter your query (mention company name):")
+
+if query:
+    company_name = match_company_in_df(query)
+
+    if company_name:
+        symbol, exchange = fetch_ticker_from_df(company_name)
+
+        if symbol:
+            st.success(f"Company found: {company_name} ({symbol}) on {exchange}")
+
+            st.write("Fetching latest news...")
+            news_list = fetch_live_news(company_name)
+
+            if news_list:
+                st.subheader("Recent News Articles:")
+                for article in news_list[:5]:
+                    st.write(f"- {article}")
+            else:
+                st.info("No recent news found.")
+
+            try:
+                if exchange and exchange.lower() in ["bse", "bo", "nse", "ns"]:
+                    hist_df = get_alpha_vantage_data(symbol)
+                else:
+                    hist_df = get_twelve_data(symbol, exchange)
+
+                st.line_chart(hist_df["close"])
+
+                faiss_index, corpus = build_faiss_index(news_list)
+                insight = get_stock_insight(query, corpus, faiss_index, symbol, hist_df)
+
+                st.subheader("💡 Investment Insight:")
+                st.write(insight)
+
+            except Exception as e:
+                st.error(f"Error fetching stock data: {e}")
+
+        else:
+            st.warning("Symbol not found for the matched company.")
+    else:
+        st.warning("No matching company found in symbol database.")
