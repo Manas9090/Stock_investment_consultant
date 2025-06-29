@@ -1,12 +1,9 @@
+streamlit
 openai
 requests
 pandas
 numpy
-sentence-transformers==2.7.0
+sentence-transformers
 scikit-learn
 faiss-cpu
-streamlit
-pymongo
-plotly
-python-dotenv
-torch==2.3.1
+boto3
