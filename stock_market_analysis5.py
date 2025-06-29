@@ -108,8 +108,6 @@ def get_twelve_data(symbol, exchange):
         "outputsize": 500,
         "apikey": twelvedata_api_key
     }
-    if exchange:
-        params["exchange"] = exchange
     response = requests.get(url, params=params)
     data = response.json()
     if "values" not in data:
@@ -185,7 +183,7 @@ if query:
                 st.info("No recent news found.")
 
             try:
-                use_alpha = exchange in ["BSE", "NSE"]
+                use_alpha = exchange.upper() in ["BSE", "NSE"]
 
                 if use_alpha:
                     alpha_symbol = symbol.split(".")[0] if "." in symbol else symbol
