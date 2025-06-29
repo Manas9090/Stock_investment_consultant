@@ -2,10 +2,10 @@ import openai
 import requests
 import pandas as pd
 import numpy as np
-from sentence_transformers import SentenceTransformer 
-from sklearn.preprocessing import normalize 
+from sentence_transformers import SentenceTransformer
+from sklearn.preprocessing import normalize
 import faiss
-import streamlit as st 
+import streamlit as st
 import datetime
 from pymongo import MongoClient
 
@@ -16,14 +16,15 @@ news_api_key = st.secrets["api_keys"]["newsapi"]
 alpha_vantage_api_key = st.secrets["api_keys"]["alphavantage"]
 
 # --- Load Embedding Model ---
-embedding_model = SentenceTransformer("all-MiniLM-L6-v2") 
+embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 
 # --- MongoDB Config ---
-MONGO_URI = st.secrets["database"]["mongo_uri"]  # Store full URI in secrets
+MONGO_URI = st.secrets["database"]["mongo_uri"]
 DB_NAME = "my_database"
 COLLECTION_NAME = "my_collection"
 
-client = MongoClient(MONGO_URI)
+# Ensure secure connection with tls=True
+client = MongoClient(MONGO_URI, tls=True, tlsAllowInvalidCertificates=False)
 collection = client[DB_NAME][COLLECTION_NAME]
 
 # --- Fetch Company Symbol & Exchange from MongoDB ---
@@ -41,7 +42,7 @@ def match_company_in_db(user_query):
             return name
     return None
 
-# --- Fetch News ---
+# --- Fetch Live News ---
 def fetch_live_news(company):
     url = f"https://newsapi.org/v2/everything?q={company}&sortBy=publishedAt&language=en&apiKey={news_api_key}"
     response = requests.get(url)
@@ -56,7 +57,7 @@ def build_faiss_index(corpus):
     index.add(embeddings)
     return index, corpus
 
-# --- Fetch Historical Data from Alpha Vantage for Indian Companies ---
+# --- Historical Data from Alpha Vantage ---
 def get_alpha_vantage_data(symbol):
     url = "https://www.alphavantage.co/query"
     params = {
@@ -67,20 +68,18 @@ def get_alpha_vantage_data(symbol):
     }
     r = requests.get(url, params=params)
     data = r.json()
-
     if "Time Series (Daily)" not in data:
         raise ValueError(f"Alpha Vantage error: {data}")
-
     df = pd.DataFrame.from_dict(data["Time Series (Daily)"], orient='index')
-    df = df.rename(columns={
+    df.rename(columns={
         '1. open': 'open', '2. high': 'high', '3. low': 'low',
         '4. close': 'close', '5. volume': 'volume'
-    })
+    }, inplace=True)
     df.index = pd.to_datetime(df.index)
-    df = df.sort_index()
+    df.sort_index(inplace=True)
     return df.last("6M")[['close']].astype(float)
 
-# --- Fetch Historical Data from Twelve Data for US Companies ---
+# --- Historical Data from Twelve Data ---
 def get_twelve_data(symbol, exchange):
     end_date = datetime.datetime.now()
     start_date = end_date - datetime.timedelta(days=180)
@@ -95,20 +94,17 @@ def get_twelve_data(symbol, exchange):
     }
     if exchange:
         params["exchange"] = exchange
-
     response = requests.get(url, params=params)
     data = response.json()
-
     if "values" not in data:
         raise ValueError(f"Twelve Data error: {data}")
-
     df = pd.DataFrame(data["values"])
     df["datetime"] = pd.to_datetime(df["datetime"])
     df.set_index("datetime", inplace=True)
-    df = df.sort_index()
+    df.sort_index(inplace=True)
     return df[["close"]].astype(float)
 
-# --- Generate Insight ---
+# --- Generate Investment Insight ---
 def get_stock_insight(query, corpus, index, symbol, hist_df):
     query_embedding = embedding_model.encode([query])
     query_embedding = normalize(query_embedding)
@@ -118,13 +114,14 @@ def get_stock_insight(query, corpus, index, symbol, hist_df):
     latest_price = hist_df["close"].iloc[-1]
     past_price = hist_df["close"].iloc[0]
     change_pct = ((latest_price - past_price) / past_price) * 100
+
     trend_context = (
         f"The current stock price of {symbol} is {latest_price:.2f}. "
         f"It changed from {past_price:.2f} over the past 6 months, a {change_pct:.2f}% move."
     )
 
     prompt = f"""
-    You are a financial advisor. Based on the stock trend and the recent news, provide an investment insight and recommendation:
+    You are a financial advisor. Based on the stock trend and recent news, provide an investment insight:
 
     Stock Trend:
     {trend_context}
@@ -139,46 +136,4 @@ def get_stock_insight(query, corpus, index, symbol, hist_df):
     response = openai.ChatCompletion.create(
         model="gpt-4",
         messages=[
-            {"role": "system", "content": "You are a helpful financial advisor."},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.4
-    )
-    return response['choices'][0]['message']['content']
-
-# --- Streamlit UI ---
-st.set_page_config(page_title="Stock Market Consultant", layout="centered") 
-st.title("📈 STAT-TECH-AI-Powered Stock Market Consultant") 
-
-query = st.text_input("🔍 Ask a question about a company (e.g., Infosys 6-month trend)")
-
-if query:
-    with st.spinner("Fetching insights..."):
-        company_name = match_company_in_db(query)
-        if company_name:
-            result = fetch_ticker_from_db(company_name)
-            if result:
-                symbol, exchange = result
-                st.write(f"📌 Company: **{company_name.title()}**, Symbol: **{symbol}**, Exchange: **{exchange}**")
-
-                news = fetch_live_news(company_name)
-                if news:
-                    index, corpus = build_faiss_index(news)
-                    try:
-                        if exchange in ["NSE", "BSE"]:
-                            hist_df = get_alpha_vantage_data(symbol)
-                        else:
-                            hist_df = get_twelve_data(symbol, exchange)
-
-                        st.line_chart(hist_df, use_container_width=True)
-                        insight = get_stock_insight(query, corpus, index, symbol, hist_df)
-                        st.success("💡 Investment Insight:")
-                        st.write(insight)
-                    except Exception as e:
-                        st.error(f"❌ Historical data error: {e}")
-                else:
-                    st.warning("⚠️ No recent news found for this company.")
-            else:
-                st.error("❌ Company not found in MongoDB. Please check the name or add it.")
-        else:
-            st.error("❌ Company not found in MongoDB. Please check the name or add it.")
+            {"role": "system", "content": "
