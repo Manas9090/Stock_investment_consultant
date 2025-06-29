@@ -7,7 +7,8 @@ from sklearn.preprocessing import normalize
 import faiss
 import streamlit as st
 import datetime
-from pymongo import MongoClient
+import boto3
+from io import StringIO
 
 # --- API Keys ---
 openai.api_key = st.secrets["api_keys"]["openai"]
@@ -18,26 +19,41 @@ alpha_vantage_api_key = st.secrets["api_keys"]["alphavantage"]
 # --- Load Embedding Model ---
 embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 
-# --- MongoDB Config ---
-MONGO_URI = st.secrets["database"]["mongo_uri"]
-DB_NAME = "my_database"
-COLLECTION_NAME = "my_collection"
+# --- AWS S3 Config ---
+AWS_ACCESS_KEY = st.secrets["aws"]["aws_access_key_id"]
+AWS_SECRET_KEY = st.secrets["aws"]["aws_secret_access_key"]
+AWS_REGION = st.secrets["aws"]["region_name"]
+BUCKET_NAME = st.secrets["aws"]["bucket_name"]
+SYMBOL_FILE_KEY = "stock_symbols2.csv"
 
-# Ensure secure connection with tls=True
-client = MongoClient(MONGO_URI, tls=True, tlsAllowInvalidCertificates=False)
-collection = client[DB_NAME][COLLECTION_NAME]
+# Initialize S3 Client
+s3 = boto3.client(
+    "s3",
+    aws_access_key_id=AWS_ACCESS_KEY,
+    aws_secret_access_key=AWS_SECRET_KEY,
+    region_name=AWS_REGION
+)
 
-# --- Fetch Company Symbol & Exchange from MongoDB ---
-def fetch_ticker_from_db(company_name):
-    doc = collection.find_one({"company_name": {"$regex": f"^{company_name}$", "$options": "i"}})
-    if doc:
-        return doc.get("symbol"), doc.get("exchange")
+# Load Stock Symbols from S3
+@st.cache_data
+def load_symbols_from_s3():
+    response = s3.get_object(Bucket=BUCKET_NAME, Key=SYMBOL_FILE_KEY)
+    csv_data = response['Body'].read().decode('utf-8')
+    df = pd.read_csv(StringIO(csv_data))
+    return df
+
+symbols_df = load_symbols_from_s3()
+
+# --- Fetch Company Symbol & Exchange from DataFrame ---
+def fetch_ticker_from_df(company_name):
+    match = symbols_df[symbols_df["company_name"].str.lower() == company_name.lower()]
+    if not match.empty:
+        return match.iloc[0]["symbol"], match.iloc[0]["exchange"]
     return None
 
-# --- Match Query with Company in MongoDB ---
-def match_company_in_db(user_query):
-    all_companies = collection.distinct("company_name")
-    for name in all_companies:
+# --- Match Company in DataFrame ---
+def match_company_in_df(user_query):
+    for name in symbols_df["company_name"]:
         if name.lower() in user_query.lower():
             return name
     return None
@@ -136,4 +152,9 @@ def get_stock_insight(query, corpus, index, symbol, hist_df):
     response = openai.ChatCompletion.create(
         model="gpt-4",
         messages=[
-            {"role": "system", "content": "
+            {"role": "system", "content": "You are a helpful financial advisor."},
+            {"role": "user", "content": prompt}
+        ]
+    )
+
+    return response.choices[0].message.content.strip()
