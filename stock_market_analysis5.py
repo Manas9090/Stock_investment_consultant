@@ -7,7 +7,7 @@ from sklearn.preprocessing import normalize
 import faiss
 import streamlit as st 
 import datetime
-import psycopg2
+from pymongo import MongoClient
 
 # --- API Keys ---
 openai.api_key = st.secrets["api_keys"]["openai"]
@@ -18,48 +18,26 @@ alpha_vantage_api_key = st.secrets["api_keys"]["alphavantage"]
 # --- Load Embedding Model ---
 embedding_model = SentenceTransformer("all-MiniLM-L6-v2") 
 
-# --- PostgreSQL Config ---
-# DB_CONFIG = {
-#     "dbname": "postgres",
-#     "user": "postgres",
-#     "password": "123456", 
-#     "host": "localhost",
-#     "port": "5432"
-# }
-DB_CONFIG = {
-    "dbname": st.secrets["database"]["dbname"],
-    "user": st.secrets["database"]["user"],
-    "password": st.secrets["database"]["password"],
-    "host": st.secrets["database"]["host"],
-    "port": st.secrets["database"]["port"],
-    "sslmode": "require"  # Mandatory for Supabase connections
-}
+# --- MongoDB Config ---
+MONGO_URI = st.secrets["database"]["mongo_uri"]  # Store full URI in secrets
+DB_NAME = "my_database"
+COLLECTION_NAME = "my_collection"
 
-# --- Fetch Company Symbol & Exchange from PostgreSQL ---
+client = MongoClient(MONGO_URI)
+collection = client[DB_NAME][COLLECTION_NAME]
+
+# --- Fetch Company Symbol & Exchange from MongoDB ---
 def fetch_ticker_from_db(company_name):
-    conn = psycopg2.connect(**DB_CONFIG)
-    cursor = conn.cursor()
-    cursor.execute("""
-        SELECT symbol, exchange FROM stock_symbols
-        WHERE LOWER(company_name) = %s
-        LIMIT 1
-    """, (company_name.lower(),))
-    result = cursor.fetchone()
-    cursor.close()
-    conn.close()
-    return result
+    doc = collection.find_one({"company_name": {"$regex": f"^{company_name}$", "$options": "i"}})
+    if doc:
+        return doc.get("symbol"), doc.get("exchange")
+    return None
 
-# --- Match Query with Company in DB ---
+# --- Match Query with Company in MongoDB ---
 def match_company_in_db(user_query):
-    conn = psycopg2.connect(**DB_CONFIG)
-    cursor = conn.cursor()
-    cursor.execute("SELECT company_name FROM stock_symbols")
-    all_companies = [row[0] for row in cursor.fetchall()]
-    cursor.close()
-    conn.close()
-
+    all_companies = collection.distinct("company_name")
     for name in all_companies:
-        if name.lower() in user_query.lower(): 
+        if name.lower() in user_query.lower():
             return name
     return None
 
@@ -166,12 +144,11 @@ def get_stock_insight(query, corpus, index, symbol, hist_df):
         ],
         temperature=0.4
     )
-    return response['choices'][0]['message']['content'] 
+    return response['choices'][0]['message']['content']
 
 # --- Streamlit UI ---
 st.set_page_config(page_title="Stock Market Consultant", layout="centered") 
 st.title("📈 STAT-TECH-AI-Powered Stock Market Consultant") 
-
 
 query = st.text_input("🔍 Ask a question about a company (e.g., Infosys 6-month trend)")
 
@@ -202,6 +179,6 @@ if query:
                 else:
                     st.warning("⚠️ No recent news found for this company.")
             else:
-                st.error("❌ Company not found in database. Please check the name or add it to your PostgreSQL table.")
+                st.error("❌ Company not found in MongoDB. Please check the name or add it.")
         else:
-            st.error("❌ Company not found in database. Please check the name or add it to your PostgreSQL table.")
+            st.error("❌ Company not found in MongoDB. Please check the name or add it.")
