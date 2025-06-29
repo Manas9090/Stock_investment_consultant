@@ -24,7 +24,7 @@ AWS_ACCESS_KEY = st.secrets["aws"]["aws_access_key_id"]
 AWS_SECRET_KEY = st.secrets["aws"]["aws_secret_access_key"]
 AWS_REGION = st.secrets["aws"]["region_name"]
 BUCKET_NAME = st.secrets["aws"]["bucket_name"]
-SYMBOL_FILE_KEY = "stock_symbols2.csv"
+SYMBOL_FILE_KEY = "stock_symbols2_clean.csv"
 
 # Initialize S3 Client
 s3 = boto3.client(
