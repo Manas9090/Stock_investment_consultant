@@ -136,24 +136,24 @@ def get_stock_insight(query, corpus, index, symbol, hist_df):
         f"It changed from {past_price:.2f} over the past 6 months, a {change_pct:.2f}% move."
     )
 
-    prompt = f"""
-    You are a financial advisor. Based on the stock trend and recent news, provide an investment insight:
+    client = openai.Client(api_key=openai.api_key)
 
-    Stock Trend:
-    {trend_context}
-
-    News:
-    {context}
-
-    Question:
-    {query}
-    """
-
-    response = openai.ChatCompletion.create(
+    response = client.chat.completions.create(
         model="gpt-4",
         messages=[
             {"role": "system", "content": "You are a helpful financial advisor."},
-            {"role": "user", "content": prompt}
+            {"role": "user", "content": f"""
+            You are a financial advisor. Based on the stock trend and recent news, provide an investment insight:
+
+            Stock Trend:
+            {trend_context}
+
+            News:
+            {context}
+
+            Question:
+            {query}
+            """}
         ]
     )
 
@@ -187,7 +187,11 @@ if query:
                 st.info("No recent news found.")
 
             try:
+                use_alpha = False
                 if exchange and exchange.lower() in ["bse", "bo", "nse", "ns"]:
+                    use_alpha = True
+
+                if use_alpha:
                     hist_df = get_alpha_vantage_data(symbol)
                 else:
                     hist_df = get_twelve_data(symbol, exchange)
