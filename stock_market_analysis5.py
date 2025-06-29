@@ -136,9 +136,7 @@ def get_stock_insight(query, corpus, index, symbol, hist_df):
         f"It changed from {past_price:.2f} over the past 6 months, a {change_pct:.2f}% move."
     )
 
-    client = openai.Client(api_key=openai.api_key)
-
-    response = client.chat.completions.create(
+    response = openai.ChatCompletion.create(
         model="gpt-4",
         messages=[
             {"role": "system", "content": "You are a helpful financial advisor."},
@@ -157,12 +155,12 @@ def get_stock_insight(query, corpus, index, symbol, hist_df):
         ]
     )
 
-    return response.choices[0].message.content.strip()
+    return response["choices"][0]["message"]["content"].strip()
 
 # --- Streamlit UI ---
 st.set_page_config(page_title="Stock Investment Consultant", layout="centered")
 
-st.title("📊 Stock Market Investment Consultant")
+st.title("\U0001F4C8 Stock Market Investment Consultant")
 st.write("Ask about a company's stock trend, news, and get AI-generated investment insights.")
 
 query = st.text_input("Enter your query (mention company name):")
@@ -201,7 +199,7 @@ if query:
                 faiss_index, corpus = build_faiss_index(news_list)
                 insight = get_stock_insight(query, corpus, faiss_index, symbol, hist_df)
 
-                st.subheader("💡 Investment Insight:")
+                st.subheader("\U0001F4A1 Investment Insight:")
                 st.write(insight)
 
             except Exception as e:
