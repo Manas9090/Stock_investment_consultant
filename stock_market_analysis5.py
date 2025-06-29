@@ -155,7 +155,7 @@ def get_stock_insight(query, corpus, index, symbol, hist_df):
         ]
     )
 
-    return response["choices"][0]["message"]["content"].strip()
+    return response.choices[0].message.content.strip()
 
 # --- Streamlit UI ---
 st.set_page_config(page_title="Stock Investment Consultant", layout="centered")
@@ -185,12 +185,11 @@ if query:
                 st.info("No recent news found.")
 
             try:
-                use_alpha = False
-                if exchange and exchange.lower() in ["bse", "bo", "nse", "ns"]:
-                    use_alpha = True
+                use_alpha = exchange in ["BSE", "NSE"]
 
                 if use_alpha:
-                    hist_df = get_alpha_vantage_data(symbol)
+                    alpha_symbol = symbol.split(".")[0] if "." in symbol else symbol
+                    hist_df = get_alpha_vantage_data(alpha_symbol)
                 else:
                     hist_df = get_twelve_data(symbol, exchange)
 
