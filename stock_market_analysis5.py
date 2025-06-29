@@ -31,7 +31,8 @@ DB_CONFIG = {
     "user": st.secrets["database"]["user"],
     "password": st.secrets["database"]["password"],
     "host": st.secrets["database"]["host"],
-    "port": st.secrets["database"]["port"]
+    "port": st.secrets["database"]["port"],
+    "sslmode": "require"  # Mandatory for Supabase connections
 }
 
 # --- Fetch Company Symbol & Exchange from PostgreSQL ---
